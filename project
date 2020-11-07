@@ -1,0 +1,335 @@
+import sys
+import pymorphy2
+
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel
+
+
+class Morphological(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('rus_morphy.ui', self)
+
+        self.part_of_speech = QLabel(self)
+        self.normal_form = QLabel(self)
+        self.persistent_signs = QLabel(self)
+        self.intermittent_signs = QLabel(self)
+        self.part_of_speech.setGeometry(70, 100, 300, 30)
+        self.normal_form.setGeometry(70, 120, 300, 30)
+        self.persistent_signs.setGeometry(70, 140, 3000, 30)
+        self.intermittent_signs.setGeometry(70, 160, 3000, 30)
+
+        self.morph = pymorphy2.MorphAnalyzer()
+        self.analysis.clicked.connect(self.analysis_word)
+
+        self.second_conjugation = ['терпеть', 'вертеть', 'обидеть', 'видеть', 'ненавидеть', 'зависеть', 'смотреть',
+                                   'гнать', 'держать', 'дышать', 'слышать']  # глаголы-исключения для 2-го спряжения
+
+    def analysis_word(self):
+        self.part_of_speech.setText('')
+        self.normal_form.setText('')
+        self.persistent_signs.setText('')
+        self.intermittent_signs.setText('')
+        res = self.morph.parse(self.for_word.text())[0]
+
+        if "ADJF" in res.tag or "ADJS" in res.tag or "COMP" in res.tag:  # разбор прилагательного
+            self.part_of_speech.setText(self.for_word.text().capitalize() + ' - прилагательное')
+            self.normal_form.setText('Начальная форма: ' + res.normal_form)
+
+            for_pers_signs = []  # постоянные признаки
+            if 'Qual' in res.tag:
+                for_pers_signs.append('качественное')
+            elif 'Poss' in res.tag:
+                for_pers_signs.append('притяжательное')
+            else:
+                for_pers_signs.append('относительное')
+
+            self.persistent_signs.setText('Постоянные признаки: ' + ', '.join(for_pers_signs))
+
+            for_inter_signs = []  # непостоянные признаки
+            if 'Qual' in res.tag:
+                if 'Supr' in res.tag:
+                    for_inter_signs.append('превосходная степень сравнения')
+                elif 'Cmp2' in res.tag:
+                    for_inter_signs.append('сравнительная степень сравнения')
+
+                if 'ADJF' in res.tag:
+                    for_inter_signs.append('полная форма')
+                else:
+                    for_inter_signs.append('краткая форма')
+            if 'nomn' in res.tag:
+                for_inter_signs.append('именительный падеж')
+            elif 'gent' in res.tag or 'gen1' in res.tag or 'gen2' in res.tag:
+                for_inter_signs.append('родительный падеж')
+            elif 'datv' in res.tag:
+                for_inter_signs.append('дательный падеж')
+            elif 'accs' in res.tag or 'acc2' in res.tag:
+                for_inter_signs.append('винительный падеж')
+            elif 'ablt' in res.tag:
+                for_inter_signs.append('творительный падеж')
+            elif 'loct' in res.tag or 'loc1' in res.tag or 'loc2' in res.tag:
+                for_inter_signs.append('предложный падеж')
+
+            if 'sing' in res.tag:
+                for_inter_signs.append('единственное число')
+            elif 'plur' in res.tag:
+                for_inter_signs.append('множественное число')
+
+            if 'masc' in res.tag:
+                for_pers_signs.append('мужской род')
+            elif 'femn' in res.tag:
+                for_pers_signs.append('женский род')
+            elif 'neut' in res.tag:
+                for_pers_signs.append('средний род')
+
+            self.intermittent_signs.setText('Непостоянные признаки: ' + ', '.join(for_inter_signs))
+
+        elif "NUMR" in res.tag:	 # разбор числительного
+            self.part_of_speech.setText(self.for_word.text().capitalize() + ' - числительное')
+            self.normal_form.setText('Начальная форма: ' + res.normal_form)
+
+            for_pers_signs = []  # постоянные признаки
+            if len(self.for_word.text().split(' ')) == 2:
+                for_pers_signs.append('составное')
+            elif len(self.for_word.text().split(' ')) == 1:
+                for_pers_signs.append('простое')
+
+            if 'Coll' in res.tag:
+                for_pers_signs.append('собирательное')
+            elif 'Anum' in res.tag:
+                for_pers_signs.append('порядковое')
+            else:
+                for_pers_signs.append('количественное')
+
+            self.persistent_signs.setText('Постоянные признаки: ' + ', '.join(for_pers_signs))
+
+            for_inter_signs = []  # непостоянные признаки
+            if 'nomn' in res.tag:
+                for_inter_signs.append('именительный падеж')
+            elif 'gent' in res.tag or 'gen1' in res.tag or 'gen2' in res.tag:
+                for_inter_signs.append('родительный падеж')
+            elif 'datv' in res.tag:
+                for_inter_signs.append('дательный падеж')
+            elif 'accs' in res.tag or 'acc2' in res.tag:
+                for_inter_signs.append('винительный падеж')
+            elif 'ablt' in res.tag:
+                for_inter_signs.append('творительный падеж')
+            elif 'loct' in res.tag or 'loc1' in res.tag or 'loc2' in res.tag:
+                for_inter_signs.append('предложный падеж')
+
+            if 'sing' in res.tag:
+                for_inter_signs.append('единственное число')
+            elif 'plur' in res.tag:
+                for_inter_signs.append('множественное число')
+
+            if 'masc' in res.tag:
+                for_inter_signs.append('муж. род')
+            elif 'femn' in res.tag:
+                for_inter_signs.append('женск. род')
+            elif 'neut' in res.tag:
+                for_inter_signs.append('средн. род')
+
+            self.intermittent_signs.setText('Непостоянные признаки: ' + ', '.join(for_inter_signs))
+
+        elif "NOUN" in res.tag:  # разбор существительного
+            self.part_of_speech.setText(self.for_word.text().capitalize() + ' - существительное')
+            self.normal_form.setText('Начальная форма: ' + res.normal_form)
+
+            for_pers_signs = []  # постоянные признаки
+            if 'anim' in res.tag:
+                for_pers_signs.append('одушевлённое')
+            elif 'inan' in res.tag:
+                for_pers_signs.append('неодушевлённое')
+
+            if 'masc' in res.tag:
+                for_pers_signs.append('мужской род')
+            elif 'femn' in res.tag:
+                for_pers_signs.append('женский род')
+            elif 'neut' in res.tag:
+                for_pers_signs.append('средний род')
+
+            if ('masc' in res.tag or 'femn' in res.tag) and \
+                    (res.normal_form[-1:] == 'а' or res.normal_form[-1:] == 'я'):
+                for_pers_signs.append('первое склонение')
+            elif ('masc' in res.tag and res.normal_form[-1:] != 'а' and res.normal_form[-1:] != 'я') or \
+                    ('neut' in res.tag and res.normal_form[-1:] == 'е') or \
+                    ('neut' in res.tag and res.normal_form[-1:] == 'о'):
+                for_pers_signs.append('второе склонение')
+            elif 'femn' in res.tag and res.normal_form[-1:] != 'а' and res.normal_form[-1:] != 'я':
+                for_pers_signs.append('третье склонение')
+
+            self.persistent_signs.setText('Постоянные признаки: ' + ', '.join(for_pers_signs))
+
+            for_inter_signs = []  # непостоянные признаки
+            if 'nomn' in res.tag:
+                for_inter_signs.append('именительный падеж')
+            elif 'gent' in res.tag or 'gen1' in res.tag or 'gen2' in res.tag:
+                for_inter_signs.append('родительный падеж')
+            elif 'datv' in res.tag:
+                for_inter_signs.append('дательный падеж')
+            elif 'accs' in res.tag or 'acc2' in res.tag:
+                for_inter_signs.append('винительный падеж')
+            elif 'ablt' in res.tag:
+                for_inter_signs.append('творительный падеж')
+            elif 'loct' in res.tag or 'loc1' in res.tag or 'loc2' in res.tag:
+                for_inter_signs.append('предложный падеж')
+
+            if 'sing' in res.tag:
+                for_inter_signs.append('единственное число')
+            elif 'plur' in res.tag:
+                for_inter_signs.append('множественное число')
+
+            self.intermittent_signs.setText('Непостоянные признаки: ' + ', '.join(for_inter_signs))
+
+        elif "PRTF" in res.tag or "PRTS" in res.tag:  # разбор причастия
+            self.part_of_speech.setText(self.for_word.text().capitalize() + ' - причастие')
+            self.normal_form.setText('Начальная форма: ' + res.normal_form)
+
+            for_pers_signs = []  # постоянные признаки
+            for_inter_signs = []  # непостоянные признаки
+
+            if 'actv' in res.tag:
+                for_pers_signs.append('действительное')
+            elif 'pssv' in res.tag:
+                for_pers_signs.append('страдательное')
+                if 'PRTF' in res.tag:
+                    for_inter_signs.append('полное')
+                elif 'PRTS' in res.tag:
+                    for_inter_signs.append('краткое')
+
+            if 'pres' in res.tag:
+                for_pers_signs.append('настоящее время')
+            elif 'past' in res.tag:
+                for_pers_signs.append('прошедшее время')
+            elif 'futr' in res.tag:
+                for_pers_signs.append('будущее время')
+
+            if 'perf' in res.tag:
+                for_pers_signs.append('совершенный вид')
+            elif 'impf' in res.tag:
+                for_pers_signs.append('несовершенный вид')
+
+            self.persistent_signs.setText('Постоянные признаки: ' + ', '.join(for_pers_signs))
+
+            if 'PRTF' in res.tag:
+                if 'nomn' in res.tag:
+                    for_inter_signs.append('именительный падеж')
+                elif 'gent' in res.tag or 'gen1' in res.tag or 'gen2' in res.tag:
+                    for_inter_signs.append('родительный падеж')
+                elif 'datv' in res.tag:
+                    for_inter_signs.append('дательный падеж')
+                elif 'accs' in res.tag or 'acc2' in res.tag:
+                    for_inter_signs.append('винительный падеж')
+                elif 'ablt' in res.tag:
+                    for_inter_signs.append('творительный падеж')
+                elif 'loct' in res.tag or 'loc1' in res.tag or 'loc2' in res.tag:
+                    for_inter_signs.append('предложный падеж')
+
+            if 'sing' in res.tag:
+                for_inter_signs.append('единственное число')
+            elif 'plur' in res.tag:
+                for_inter_signs.append('множественное число')
+
+            if 'masc' in res.tag:
+                for_inter_signs.append('муж. род')
+            elif 'femn' in res.tag:
+                for_inter_signs.append('женск. род')
+            elif 'neut' in res.tag:
+                for_inter_signs.append('средн. род')
+
+            self.intermittent_signs.setText('Непостоянные признаки: ' + ', '.join(for_inter_signs))
+
+        elif 'GRND' in res.tag:  # разбор деепричастия
+            self.part_of_speech.setText(self.for_word.text().capitalize() + ' - деепричастие')
+            self.normal_form.setText('Начальная форма: ' + res.normal_form)
+
+            for_pers_signs = []  # постоянные признаки
+            if 'perf' in res.tag:
+                for_pers_signs.append('совершенный вид')
+            elif 'impf' in res.tag:
+                for_pers_signs.append('несовершенный вид')
+
+            if 'Refl' in res.tag:
+                for_pers_signs.append('возвратное')
+            else:
+                for_pers_signs.append('невозвратное')
+
+            if 'tran' in res.tag:
+                for_pers_signs.append('переходное')
+            elif 'intr' in res.tag:
+                for_pers_signs.append('непереходное')
+
+            self.persistent_signs.setText('Постоянные признаки: ' + ', '.join(for_pers_signs))
+
+        elif "VERB" in res.tag or "INFN" in res.tag:  # разбор глагола
+            self.part_of_speech.setText(self.for_word.text().capitalize() + ' - глагол')
+            self.normal_form.setText('Начальная форма: ' + res.normal_form)
+
+            for_pers_signs = []  # постоянные признаки
+            if 'perf' in res.tag:
+                for_pers_signs.append('совершенный вид')
+            elif 'impf' in res.tag:
+                for_pers_signs.append('несовершенный вид')
+
+            if 'tran' in res.tag:
+                for_pers_signs.append('переходный')
+            elif 'intr' in res.tag:
+                for_pers_signs.append('непереходный')
+
+            if (res.normal_form[-3:] == 'ить' or res.normal_form[-5:] == 'иться') and \
+                    res.normal_form.lower() != 'брить' and res.normal_form.lower() != 'стелить' and \
+                    res.normal_form.lower() != 'зиждиться' and res.normal_form.lower() != 'зыбиться':
+                for_pers_signs.append('2-е спряжение')
+            elif res.normal_form.lower() in self.second_conjugation:
+                for_pers_signs.append('2-е спряжение')
+            else:
+                for_pers_signs.append('1-е спряжение')
+
+            self.persistent_signs.setText('Постоянные признаки: ' + ', '.join(for_pers_signs))
+
+            for_inter_signs = []  # непостоянные признаки
+            if "INFN" not in res.tag:  # если слово инфинитив, то непостоянных признаков не будет
+                if 'indc' in res.tag:
+                    for_inter_signs.append("изъяв. наклонение")
+                elif 'impr' in res.tag:
+                    for_inter_signs.append('повелительное наклонение')
+
+                if 'sing' in res.tag:
+                    for_inter_signs.append('единств. число')
+                elif 'plur' in res.tag:
+                    for_inter_signs.append('множественное число')
+
+                if 'pres' in res.tag:
+                    for_inter_signs.append('настоящее время')
+                elif 'past' in res.tag:
+                    for_inter_signs.append('прошедшее время')
+                elif 'futr' in res.tag:
+                    for_inter_signs.append('будущее время')
+
+                if '1per' in res.tag:
+                    for_inter_signs.append('1 лицо')
+                elif '2per' in res.tag:
+                    for_inter_signs.append('2 лицо')
+                elif '3per' in res.tag:
+                    for_inter_signs.append('3 лицо')
+
+                if 'masc' in res.tag:
+                    for_inter_signs.append('муж. род')
+                elif 'femn' in res.tag:
+                    for_inter_signs.append('женск. род')
+                elif 'neut' in res.tag:
+                    for_inter_signs.append('средн. род')
+
+                self.intermittent_signs.setText('Непостоянные признаки: ' + ', '.join(for_inter_signs))
+
+        else:
+            self.part_of_speech.setText('Слово содержит ошибку, попробуйте сново')
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+
+    morphy = Morphological()
+    morphy.show()
+
+    sys.exit(app.exec())
